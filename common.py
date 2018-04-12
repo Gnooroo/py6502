@@ -132,13 +132,24 @@ class AddrMode(NoValue):
     INDY = '(Indirect),Y'
 
 class OpCode:
-    def __init__(self, binary, op_code, op_mode=None, op_size=None, op_cycles=None):
+    def __init__(self, binary=None, op_code=None, op_mode=None, op_size=None, op_cycles=None, cpu=None):
         self.binary = binary
         self.code = op_code
         self.mode = op_mode
         self.size = OpCode.get_size(self.mode)
         self.cycles = op_cycles
         self.name = str(op_mode)
+        self.src_addr = None
+        self.src = None
+        self.bytes = None
+
+    def fill(self, cpu):
+        self.bytes = cpu.ram[cpu.pc:cpu.pc+self.size]
+        if len(self.bytes) > 1:
+            self.src = int.from_bytes(self.bytes[1:], 'little')
+            self.src_addr = self.get_mem_addr(self.src, cpu) 
+            if self.src_addr is not None:
+                    self.src  = cpu.read(self.src_addr)
 
     def __str__(self):
         return self.__repr__();
@@ -164,9 +175,20 @@ class OpCode:
 
         return size
 
-    def get_mem(self):
-        pass
-
+    def get_mem_addr(self, oper_value, cpu):
+        return {
+                AddrMode.ZP: oper_value,
+                AddrMode.ABS: oper_value,
+                AddrMode.REL: toSigned(oper_value) + cpu.pc,
+                AddrMode.ZPX: oper_value + cpu.x.value,
+                AddrMode.ZPY: oper_value + cpu.y.value,
+                AddrMode.ABSX: oper_value + cpu.x.value,
+                AddrMode.ABSY: oper_value + cpu.y.value,
+                AddrMode.IND: cpu.read(oper_value, 2),
+                AddrMode.INDX: cpu.read(((oper_value + cpu.x.value) & 0x00ff), 2),
+                AddrMode.INDY: cpu.read(oper_value, 2) + cpu.y.value,
+                }.get(self.mode, None)
+        
     def print_oper(self, oper):
         return {
                 AddrMode.A: 'A',
@@ -181,14 +203,7 @@ class OpCode:
                 AddrMode.IND: '($%s)' % hexStr(oper, size=4),
                 AddrMode.INDX:'($%s,X)' % hexStr(oper),
                 AddrMode.INDY:'($%s),Y' % hexStr(oper),
-                AddrMode.REL:'($%s)' % hexStr(oper),
                 }.get(self.mode, None)
-
-
-class Instruction():
-    def __init__(self, opcode, ram, addr):
-        self.opcode = opcode
-        self.bytes = ram[addr:addr+opcode.size]
 
 
 OPCODES_6502 = [OpCode(0x00, Op.BRK), OpCode(0x01, Op.ORA, AddrMode.INDX), \

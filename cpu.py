@@ -81,48 +81,6 @@ class CPU:
                 hexStr(self.pc), hexStr(self.sp.value), binStr(self.status.value), \
                 self.clk.counter)
 
-    def read_oper(self, op, oper=None):
-        oper_size = op.size - 1
-        if oper_size == 0:
-            return None
-
-        if oper is None:
-            oper = self.read_next(oper_size)
-        
-        if op.mode == AddrMode.REL:
-            oper = toSigned(oper) + self.pc
-
-        return oper
-
-    def fetch_src(self, op):
-        src = None
-        oper = self.read_oper(op)
-
-        if op.mode in (AddrMode.ZP, AddrMode.ABS):
-           pass 
-        elif op.mode == AddrMode.ZPX:
-            oper += self.x.value
-        elif op.mode == AddrMode.ZPY:
-            oper += self.y.value
-        elif op.mode == AddrMode.ABSX:
-            oper += self.x.value
-        elif op.mode == AddrMode.ABSY:
-            oper += self.y.value
-        elif op.mode == AddrMode.IND:
-            ind_addr = oper
-            oper = cpu.read(ind_addr, 2)
-        elif self.mode == AddrMode.INDX:
-            ind_addr = (oper + self.x.value) & 0x00ff
-            oper = self.read(ind_addr, 2)
-        elif self.mode == AddrMode.INDY:
-            ind_addr = oper
-            oper = self.read(ind_addr, 2) + self.y.value
-            
-        if oper is not None:
-            src = self.read(oper)
-            
-        return src, oper
-
     def store_src(self, op, src, addr):
         if op.mode is None:
             return
@@ -146,8 +104,9 @@ class CPU:
         pass
 
     def do_ADC(self, op):
-        src, addr = self.fetch_src(op)
-
+        src = op.src
+        addr = op.src_addr
+        
         temp = src + self.a.value + self.status.C
         self.set_zero(temp & 0xff)
 
@@ -162,7 +121,8 @@ class CPU:
         self.clk.tick()
 
     def do_ASL(self, op):
-        src, addr = self.fetch_src(op)
+        src = op.src
+        addr = op.src_addr
         
         self.set_carry(src & 0x80)
         src = src << 1
@@ -178,10 +138,10 @@ class CPU:
         getattr(self, 'do_' + str(op.code))(op)
 
     def execute(self):
-        if self.verbose:
-            self.print_op_bytes()
+        opcode = self.opcodes[self.ram[self.pc]]
+        opcode.fill(self)
+        self.pc += opcode.size
 
-        opcode = self.opcodes[self.read_next()]
         self.execute_op(opcode)
 
         if self.verbose:
