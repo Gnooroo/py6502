@@ -204,7 +204,7 @@ class CPU:
 
         oper = self.read_oper(opcode, oper_bytes)
         if oper is not None:
-            return '%s %s' % (str(opcode.code), str(opcode.mode.print_oper(oper)))
+            return '%s %s' % (str(opcode.code), str(opcode.print_oper(oper)))
 
         return str(opcode.code)
 

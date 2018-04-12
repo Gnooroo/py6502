@@ -131,45 +131,6 @@ class AddrMode(NoValue):
     INDX = '(Indirect,X)'
     INDY = '(Indirect),Y'
 
-    def oper_A(self, oper=None):
-        return 'A'
-
-    def oper_IMM(self, oper):
-        return hexStr(oper, prefix='#$')
-
-    def oper_REL(self, oper):
-        return hexStr(oper, size=4, prefix='$')
-
-    def oper_ZP(self, oper):
-        return hexStr(oper, prefix='$')
-
-    def oper_ZPX(self, oper):
-        return '%s,X' % hexStr(oper, prefix='$')
-
-    def oper_ZPY(self, oper):
-        return '%s,Y' % hexStr(oper, prefix='$')
-    
-    def oper_ABS(self, oper):
-        return hexStr(oper, size=4, prefix='$')
-
-    def oper_ABSX(self, oper):
-        return '%s,X' % hexStr(oper, size=4, prefix='$')
-
-    def oper_ABSY(self, oper):
-        return '%s,Y' % hexStr(oper, size=4, prefix='$')
-
-    def oper_IND(self, oper):
-        return '(%s)' % hexStr(oper, size=4, prefix='$')
-
-    def oper_INDX(self, oper):
-        return '(%s,X)' % hexStr(oper, prefix='$')
-
-    def oper_INDY(self, oper):
-        return '(%s),Y' % hexStr(oper, prefix='$')
-
-    def print_oper(self, oper):
-        return getattr(self, 'oper_'+str(self.name))(oper)
-
 class OpCode:
     def __init__(self, binary, op_code, op_mode=None, op_size=None, op_cycles=None):
         self.binary = binary
@@ -203,12 +164,31 @@ class OpCode:
 
         return size
 
+    def get_mem(self):
+        pass
+
+    def print_oper(self, oper):
+        return {
+                AddrMode.A: 'A',
+                AddrMode.IMM: '#$%s' % hexStr(oper),
+                AddrMode.REL: '$%s' % hexStr(oper, size=4),
+                AddrMode.ZP: '$%s' % hexStr(oper),
+                AddrMode.ZPX: '$%s,X' % hexStr(oper),
+                AddrMode.ZPY: '$%s,Y' % hexStr(oper),
+                AddrMode.ABS: hexStr(oper, size=4, prefix='$'),
+                AddrMode.ABSX: '$%s,X' % hexStr(oper, size=4),
+                AddrMode.ABSY:'$%s,Y' % hexStr(oper, size=4),
+                AddrMode.IND: '($%s)' % hexStr(oper, size=4),
+                AddrMode.INDX:'($%s,X)' % hexStr(oper),
+                AddrMode.INDY:'($%s),Y' % hexStr(oper),
+                AddrMode.REL:'($%s)' % hexStr(oper),
+                }.get(self.mode, None)
+
+
 class Instruction():
     def __init__(self, opcode, ram, addr):
         self.opcode = opcode
         self.bytes = ram[addr:addr+opcode.size]
-
-
 
 
 OPCODES_6502 = [OpCode(0x00, Op.BRK), OpCode(0x01, Op.ORA, AddrMode.INDX), \
