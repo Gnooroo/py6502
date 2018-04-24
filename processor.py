@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import sys
 from common import *
 from cpu import *
